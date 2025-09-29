@@ -1,12 +1,38 @@
 # D&D Companion API — by Luch1f3rchoCR
 
-FastAPI + OpenAPI (Swagger) listo en **/docs**.
+Public API wrapper around [D&D 5e](https://www.dnd5eapi.co/), built with **FastAPI** and documented with **Swagger** at `/docs`.
 
-## Quickstart (local)
-python -m venv venv && source venv/bin/activate
+![CI](https://github.com/Luch1f3rchoCR/dnd-companion-api/actions/workflows/ci.yml/badge.svg?branch=main)
+
+> Personal, non-profit project made for learning, practicing and sharing with the community.
+
+---
+
+## 🔌 Available Endpoints
+
+- **Meta**
+
+  - `GET /health` → API status & version
+- **Monsters**
+
+  - `GET /monsters` → list with filters (`name`, `type`, `cr_min`, `cr_max`, `limit`, `offset`)
+  - `GET /monsters/{index}` → monster detail
+- **Spells**
+
+  - `GET /spells` → list with filters (`name`, `limit`, `offset`)
+  - `GET /spells/{index}` → spell detail
+- **Generic catalog**
+
+  - `GET /dnd/{resource}` → access to any 5e resource (e.g. `classes`, `races`, `equipment`, etc.)
+  - `GET /dnd/{resource}/{index}` → resource detail
+
+---
+
+## 🚀 Quickstart (local)
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload  # luego abrir http://localhost:8000/docs
+uvicorn app.main:app --reload --port 8000
+```
 
-## Docker
-docker build -t dnd-api .
-docker run -p 8000:8000 dnd-api
