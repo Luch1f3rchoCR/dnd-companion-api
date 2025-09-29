@@ -2,7 +2,7 @@
 
 Public API wrapper around [D&D 5e](https://www.dnd5eapi.co/), built with **FastAPI** and documented with **Swagger** at `/docs`.
 
-![CI](https://github.com/Luch1f3rchoCR/dnd-companion-api/actions/workflows/ci.yml/badge.svg?branch=main)
+![CI](https://img.shields.io/github/actions/workflow/status/Luch1f3rchoCR/dnd-companion-api/ci.yml?branch=main&label=CI)
 
 > Personal, non-profit project made for learning, practicing and sharing with the community.
 
@@ -35,4 +35,3 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
-
