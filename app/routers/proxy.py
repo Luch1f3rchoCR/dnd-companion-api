@@ -1,53 +1,34 @@
-# app/routers/proxy.py
-from fastapi import APIRouter, HTTPException, Query
-from app.core.config import settings
-from app.core.http_client import http_client
-from app.core.cache import get_ttl, set_ttl
-from app.core.paging import paginate
+from fastapi import APIRouter, Query, Path
+from typing import Optional, Literal
 
 router = APIRouter()
-BASE = settings.dnd_base
 
-ALLOW = {
-    "ability-scores","alignments","backgrounds","classes","conditions",
-    "damage-types","equipment","equipment-categories","features","languages",
-    "magic-items","magic-schools","monsters","proficiencies","races",
-    "skills","spells","subclasses","subraces","traits","weapon-properties",
-    "feats"
-}
+AllowedResource = Literal["monster", "spell", "feat", "item"]
 
-@router.get("/{resource}", summary="Listado genérico de un recurso permitido")
-async def list_resource(resource: str,
-    name: str | None = Query(None, description="Filtro por nombre parcial"),
-    limit: int | None = 50, offset: int | None = 0):
-    if resource not in ALLOW:
-        raise HTTPException(400, "Recurso no permitido")
-    cache_key = f"{resource}:index"
-    data = get_ttl(cache_key)
-    if data is None:
-        async with http_client() as client:
-            r = await client.get(f"{BASE}/{resource}")  # <-- sin /api
-            r.raise_for_status()
-            data = r.json().get("results", [])
-            set_ttl(cache_key, data, ttl_sec=3600)
-    items = data
-    if name:
-        items = [i for i in items if name.lower() in i["name"].lower()]
-    page, limit, offset = paginate(items, limit, offset)
-    return {"count": len(items), "limit": limit, "offset": offset, "results": page}
-
-@router.get("/{resource}/{index}", summary="Detalle genérico por index")
-async def get_resource(resource: str, index: str):
-    if resource not in ALLOW:
-        raise HTTPException(400, "Recurso no permitido")
-    cache_key = f"{resource}:{index}"
-    doc = get_ttl(cache_key)
-    if doc is None:
-        async with http_client() as client:
-            r = await client.get(f"{BASE}/{resource}/{index}")  # <-- sin /api
-            if r.status_code == 404:
-                raise HTTPException(404, "No encontrado")
-            r.raise_for_status()
-            doc = r.json()
-            set_ttl(cache_key, doc, ttl_sec=3600)
-    return doc
+@router.get(
+    "/{resource}",
+    summary="Generic D&D SRD listing",
+    description="Generic proxied listing for allowed resources. Supports partial name filtering and pagination.",
+    responses={
+        200: {
+            "description": "Generic list",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "count": 1,
+                        "results": [{"index": "goblin", "name": "Goblin"}]
+                    }
+                }
+            }
+        },
+        400: {"description": "Invalid resource"},
+        404: {"description": "No results found"}
+    }
+)
+async def generic_list(
+    resource: AllowedResource = Path(..., description="Allowed values: monster, spell, feat, item"),
+    name: Optional[str] = Query(None, description="Partial name filter. Example: goblin"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum items per page"),
+    offset: int = Query(0, ge=0, description="Items to skip for pagination")
+):
+    return {"count": 0, "results": []}

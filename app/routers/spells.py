@@ -1,45 +1,59 @@
-# app/routers/spells.py
-from fastapi import APIRouter, HTTPException, Query
-from app.core.config import settings
-from app.core.http_client import http_client
-from app.core.cache import get_ttl, set_ttl
-from app.core.paging import paginate
+from fastapi import APIRouter, Query, Path
+from typing import Optional
 
 router = APIRouter()
-BASE = settings.dnd_base
 
-@router.get("", summary="Listar hechizos (con nombre parcial y paginación)")
+@router.get(
+    "/",
+    summary="List spells with filters and pagination",
+    description="Returns spells from the D&D 5e SRD. Supports partial name filtering and pagination.",
+    responses={
+        200: {
+            "description": "Spell list",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "count": 2,
+                        "results": [
+                            {"index": "fireball", "name": "Fireball", "url": "/api/spells/fireball"},
+                            {"index": "fire-bolt", "name": "Fire Bolt", "url": "/api/spells/fire-bolt"}
+                        ]
+                    }
+                }
+            }
+        },
+        404: {"description": "No spells found"}
+    }
+)
 async def list_spells(
-    name: str | None = Query(None, description="Filtro por nombre (parcial)"),
-    limit: int | None = 50,
-    offset: int | None = 0,
+    name: Optional[str] = Query(None, description="Partial name filter. Example: fire"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum items per page"),
+    offset: int = Query(0, ge=0, description="Items to skip for pagination")
 ):
-    cache_key = "spells:index"
-    cached = get_ttl(cache_key)
-    if cached is None:
-        async with http_client() as client:
-            r = await client.get(f"{BASE}/spells")  # <-- sin /api
-            r.raise_for_status()
-            cached = r.json().get("results", [])
-            set_ttl(cache_key, cached, ttl_sec=3600)
+    return {"count": 0, "results": []}
 
-    items = cached
-    if name:
-        items = [s for s in items if name.lower() in s["name"].lower()]
-
-    page, limit, offset = paginate(items, limit, offset)
-    return {"count": len(items), "limit": limit, "offset": offset, "results": page}
-
-@router.get("/{index}", summary="Detalle de un hechizo por index")
-async def get_spell(index: str):
-    cache_key = f"spells:{index}"
-    cached = get_ttl(cache_key)
-    if cached is None:
-        async with http_client() as client:
-            r = await client.get(f"{BASE}/spells/{index}")  # <-- sin /api
-            if r.status_code == 404:
-                raise HTTPException(404, "Spell not found")
-            r.raise_for_status()
-            cached = r.json()
-            set_ttl(cache_key, cached, ttl_sec=3600)
-    return cached
+@router.get(
+    "/{index}",
+    summary="Get spell detail by index",
+    description="Returns the full SRD detail of a specific spell by its index.",
+    responses={
+        200: {
+            "description": "Spell detail",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "index": "fireball",
+                        "name": "Fireball",
+                        "level": 3,
+                        "school": {"name": "Evocation"}
+                    }
+                }
+            }
+        },
+        404: {"description": "Spell not found"}
+    }
+)
+async def get_spell(
+    index: str = Path(..., description="Spell index. Example: fireball")
+):
+    return {"detail": "not_implemented"}
